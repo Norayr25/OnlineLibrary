@@ -3,6 +3,7 @@ package com.Library.services;
 import com.Library.repositores.ItemRepository;
 import com.Library.services.entities.Item;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -73,6 +74,7 @@ public class InventoryServiceImpl implements InventoryService {
      * @return The item with the specified ID, or null if not found.
      */
     @Override
+    @Nullable
     public Item getItemById(@Nonnull final Long id) {
         Optional<Item> optionalItem = itemRepository.findById(id);
         return optionalItem.orElse(null);
@@ -84,6 +86,7 @@ public class InventoryServiceImpl implements InventoryService {
      * @return A list of all items in the inventory.
      */
     @Override
+    @Nonnull
     public List<Item> getAllItems() {
         return itemRepository.findAll();
     }

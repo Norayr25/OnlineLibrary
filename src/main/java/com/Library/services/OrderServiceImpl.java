@@ -5,9 +5,9 @@ import com.Library.exceptions.PaymentFailedException;
 import com.Library.repositores.OrderRepository;
 import com.Library.services.common.PaymentStatus;
 import com.Library.services.entities.Cart;
+import com.Library.services.entities.Item;
 import com.Library.services.entities.Order;
 import com.Library.services.entities.User;
-import com.Library.services.entities.Item;
 import jakarta.annotation.Nonnull;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -75,6 +75,7 @@ public class OrderServiceImpl implements OrderService {
      * @return A list of orders placed by the specified user.
      */
     @Override
+    @Nonnull
     public List<Order> getSpecificUserOrders(@Nonnull final Long userId) {
         return orderRepository.findByUserId(userId);
     }
@@ -85,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
      * @return A list of all orders in the system.
      */
     @Override
+    @Nonnull
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }

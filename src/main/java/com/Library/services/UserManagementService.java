@@ -46,6 +46,7 @@ public class UserManagementService {
      * @param email The email of the user to retrieve.
      * @return The user object if found, otherwise null.
      */
+    @Nullable
     public User getUserByEmail(@Nonnull final String email) {
         return usersRepository.getByEmail(email);
     }
@@ -55,6 +56,7 @@ public class UserManagementService {
      * @param name The name of the users to retrieve.
      * @return A list of user objects matching the provided name.
      */
+    @Nonnull
     public List<User> getUsersByName(@Nonnull final String name) {
         return usersRepository.getByName(name);
     }

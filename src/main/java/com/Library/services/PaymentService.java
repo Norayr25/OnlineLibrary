@@ -23,6 +23,7 @@ public class PaymentService {
      * @param totalAmount The total amount to be paid.
      * @return The payment status indicating whether the payment was successful or failed due to insufficient funds.
      */
+    @Nonnull
     public PaymentStatus processPayment(@Nonnull final User user, int totalAmount) {
         if (user.getMoney() >= totalAmount) {
             userManagementService.setUserMoney(user.getId(), user.getMoney() - totalAmount);
