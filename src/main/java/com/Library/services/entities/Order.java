@@ -1,6 +1,7 @@
 package com.Library.services.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,18 +18,20 @@ public class Order {
     @jakarta.persistence.Id
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "cart_id")
+    @JsonIgnore
     private Cart cart;
 
-    private Long userId;
+    private String userEmail;
 
     private double totalPrice;
 
-    public Order(Long userId, Cart cart, double totalPrice) {
-        this.userId = userId;
+    public Order(String userEmail, Cart cart, double totalPrice) {
+        this.userEmail = userEmail;
         this.cart = cart;
         this.totalPrice = totalPrice;
     }

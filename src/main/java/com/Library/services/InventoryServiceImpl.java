@@ -17,9 +17,8 @@ import java.util.logging.Logger;
  */
 @Service
 public class InventoryServiceImpl implements InventoryService {
-    private static final String NOT_AVAILABLE = "The %s item is not available in the library.";
     private static final Logger logger = Logger.getLogger(InventoryServiceImpl.class.getCanonicalName());
-
+    private static final String NOT_AVAILABLE = "The %s item is not available in the library.";
     private final ItemRepository itemRepository;
     @Autowired
     public InventoryServiceImpl(ItemRepository itemRepository) {

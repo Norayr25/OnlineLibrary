@@ -8,13 +8,17 @@ import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.logging.Logger;
+
+import static com.Library.services.UserManagementService.USER_NOT_FOUND;
+
 /**
  * Service class responsible for handling purchases.
  */
 @Service
 public class PurchaseService {
+    private static final Logger log = Logger.getLogger(PurchaseService.class.getCanonicalName());
     public static final String CART_NOT_FOUND_OR_EMPTY = "Cart not found or empty for the user %s.";
-    public static final String USER_NOT_FOUND = "User with an identifier %s not found.";
     private final OrderService orderService;
     private final UserManagementService userManagementService;
     @Autowired
@@ -27,22 +31,25 @@ public class PurchaseService {
     /**
      * Initiates the purchase process for the specified user.
      *
-     * @param userId The identifier of the user initiating the purchase.
+     * @param email The email of the user initiating the purchase.
+     * @return The total price of items in the cart.
      * @throws UserNotFoundException    If the user with the specified ID is not found.
      * @throws CartNotFoundException    If the cart for the user is not found or empty.
      */
-    public void purchaseItems(@Nonnull final Long userId) {
-        User user = userManagementService.getUserByID(userId);
+    public int purchaseItems(@Nonnull final String email) {
+        User user = userManagementService.getUserByEmail(email);
 
         if (user == null) {
-            throw new UserNotFoundException(String.format(USER_NOT_FOUND, userId));
+            log.severe(String.format(USER_NOT_FOUND, email));
+            throw new UserNotFoundException(String.format(USER_NOT_FOUND, email));
         }
 
         Cart cart = user.getCart();
         if (cart == null) {
-            throw new CartNotFoundException(String.format(CART_NOT_FOUND_OR_EMPTY, userId));
+            log.severe(String.format(CART_NOT_FOUND_OR_EMPTY, email));
+            throw new CartNotFoundException(String.format(CART_NOT_FOUND_OR_EMPTY, email));
         }
 
-        orderService.processOrder(user, cart);
+        return orderService.processOrder(user, cart);
     }
 }

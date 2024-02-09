@@ -9,12 +9,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
  * Service class for managing book-related operations.
  */
 @Service
 public class BooksService {
+    private static final Logger log = Logger.getLogger(BooksService.class.getCanonicalName());
+
+    private static final String BOOK_NOT_FOUND = "There isn't a book with ID %s in the library";
     private final BooksRepository booksRepository;
     @Autowired
     public BooksService(BooksRepository booksRepository) {
@@ -106,6 +110,7 @@ public class BooksService {
     public Book removeBookFromLibrary(@Nonnull final Long id) {
         Optional<Book> bookOpt = booksRepository.findById(id);
         if (bookOpt.isEmpty()) {
+            log.severe(String.format(BOOK_NOT_FOUND, id));
             return null;
         }
         booksRepository.deleteById(id);

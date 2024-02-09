@@ -11,5 +11,5 @@ import java.util.List;
  */
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByUserId(Long user_id);
+    List<Order> findByUserEmail(String email);
 }

@@ -6,6 +6,7 @@ import com.Library.services.dtos.ApiResponse;
 import com.Library.services.entities.Book;
 import com.Library.services.entities.User;
 import com.opencsv.bean.CsvToBeanBuilder;
+import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -23,7 +24,7 @@ import java.util.logging.Logger;
 @Component
 public class DatabaseInitializer implements ApplicationRunner {
     private static final Logger logger = Logger.getLogger(DatabaseInitializer.class.getCanonicalName());
-    private static final String API_URL = "https://fakerapi.it/api/v1/books?_quantity=100&_locale=en_US";
+    private static final String BOOKS_LOCATION_URL = "https://fakerapi.it/api/v1/books?_quantity=100&_locale=en_US";
     private static final String USERS_CSV_FILE_PATH = "users.csv";
     private final RestTemplate restTemplate;
     private final BooksRepository booksRepository;
@@ -40,15 +41,17 @@ public class DatabaseInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        String usersCsvFilePath = args.containsOption("usersCsvFilePath") ?
+                args.getOptionValues("usersCsvFilePath").getFirst() : USERS_CSV_FILE_PATH;
         fetchBooksInventoryDataToDatabase();
-        fetchUserDataToDatabase();
+        fetchUserDataToDatabase(usersCsvFilePath);
     }
 
     /**
      * Fetches book inventory data from an external API and saves it to the database.
      */
     public void fetchBooksInventoryDataToDatabase() {
-        ApiResponse apiResponse = restTemplate.getForObject(API_URL, ApiResponse.class);
+        ApiResponse apiResponse = restTemplate.getForObject(BOOKS_LOCATION_URL, ApiResponse.class);
         if (apiResponse != null && apiResponse.getData() != null) {
             Book[] books = apiResponse.getData();
             Random random = new Random();
@@ -57,15 +60,16 @@ public class DatabaseInitializer implements ApplicationRunner {
                 book.setQuantity(random.nextInt(20) + 1);
                 booksRepository.save(book);
             }
-            logger.info("Books imported successfully from the url " + API_URL);
+            logger.info("Books imported successfully from the url " + BOOKS_LOCATION_URL);
         }
     }
 
     /**
      * Fetches user data from a CSV file and saves it to the database.
+     * @param usersCsvFilePath The file path of the CSV file containing user data.
      */
-    public void fetchUserDataToDatabase() {
-        try (FileReader reader = new FileReader(USERS_CSV_FILE_PATH)) {
+    public void fetchUserDataToDatabase(@Nonnull final String usersCsvFilePath) {
+        try (FileReader reader = new FileReader(usersCsvFilePath)) {
             List<User> users = new CsvToBeanBuilder<User>(reader)
                     .withType(User.class)
                     .build()
@@ -73,12 +77,12 @@ public class DatabaseInitializer implements ApplicationRunner {
 
             Random random = new Random();
             for (User user : users) {
-                user.setMoney(random.nextInt(300) + 1);
+                user.setMoney(random.nextInt(400) + 1);
                 userRepository.save(user);
             }
-            logger.info("Users imported successfully from the csv file " + USERS_CSV_FILE_PATH);
+            logger.info("Users imported successfully from the csv file " + usersCsvFilePath);
         } catch (Exception e) {
-            logger.severe("Failed to import users from th csv file " + USERS_CSV_FILE_PATH);
+            logger.severe("Failed to import users from th csv file " + usersCsvFilePath);
         }
     }
 }

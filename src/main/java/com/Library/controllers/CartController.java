@@ -1,12 +1,15 @@
 package com.Library.controllers;
 
 
+import com.Library.services.CartService;
 import com.Library.services.dtos.CartItemDTO;
 import com.Library.services.dtos.ResponseDTO;
-import com.Library.services.CartService;
 import com.Library.services.entities.Item;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
  * Controller for handling cart operations.
  */
 @RestController
-@RequestMapping("/v1/cart")
+@RequestMapping("/api/v1/cart")
+@PreAuthorize("hasRole('ROLE_USER')")
 public class CartController {
     private final CartService cartService;
 
@@ -30,11 +34,13 @@ public class CartController {
      * @param cartItemDTO The DTO containing information about the item to be added.
      * @return A response indicating whether the operation was successful or not.
      */
-    @PostMapping("/addItem")
+    @PostMapping("/add")
     public ResponseDTO<Item> addItemToCart(@RequestBody CartItemDTO cartItemDTO) {
         try {
-            Item item = cartService.addItemToCart(cartItemDTO);
-            return new ResponseDTO<>(HttpStatus.OK.value(), "The item was successfully added to the cart", item);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userEmail = authentication.getName();
+            Item item = cartService.addItemToCart(userEmail, cartItemDTO.getItemId(), cartItemDTO.getCount());
+            return new ResponseDTO<>(HttpStatus.OK.value(), "The item was successfully added to the cart.", item);
         } catch (Exception e) {
             return new ResponseDTO<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null);
         }
@@ -45,10 +51,12 @@ public class CartController {
      * @param cartItemDTO The DTO containing information about the item to be removed.
      * @return A response indicating whether the operation was successful or not.
      */
-    @PostMapping("/removeItem")
+    @PostMapping("/remove")
     public ResponseDTO<Item> removeItemFromCart(@RequestBody CartItemDTO cartItemDTO) {
         try {
-            Item item = cartService.removeItemFromCart(cartItemDTO);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userEmail = authentication.getName();
+            Item item = cartService.removeItemFromCart(userEmail, cartItemDTO.getItemId(), cartItemDTO.getCount());
             return new ResponseDTO<>(HttpStatus.OK.value(), "The item was successfully removed from the cart", item);
         } catch (Exception e) {
             return new ResponseDTO<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null);

@@ -33,10 +33,11 @@ dependencies {
 	// CSV
 	implementation 'com.opencsv:opencsv:5.9'
 
-
 	//Spring security
-//	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
 
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+	implementation 'com.google.guava:guava:33.0.0-jre'
 }
 
 tasks.named('test') {

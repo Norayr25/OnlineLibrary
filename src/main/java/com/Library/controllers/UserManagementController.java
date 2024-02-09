@@ -1,23 +1,24 @@
 package com.Library.controllers;
 
+import com.Library.services.UserManagementService;
 import com.Library.services.dtos.ChangeUserRoleDTO;
 import com.Library.services.dtos.ResponseDTO;
-import com.Library.services.UserManagementService;
 import com.Library.services.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.Library.services.UserManagementService.USER_NOT_FOUND_ERROR;
+import static com.Library.services.UserManagementService.USER_NOT_FOUND;
 import static com.Library.services.UserManagementService.USER_ROLE_UPDATED;
 
 /**
  * Controller for handling user management operations.
  */
 @RestController
-@RequestMapping("/v1/users")
+@RequestMapping("/api/v1/users")
 public class UserManagementController {
     private final UserManagementService userManagementService;
 
@@ -32,6 +33,7 @@ public class UserManagementController {
      * @param id The ID of the user.
      * @return A ResponseDTO containing the retrieved user or an error message if the user is not found.
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
     @GetMapping("/{id}")
     public ResponseDTO<User> getUserByID(@PathVariable Long id) {
         User user = userManagementService.getUserByID(id);
@@ -46,6 +48,7 @@ public class UserManagementController {
      *
      * @return A ResponseDTO containing a list of all users.
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
     @GetMapping
     public ResponseDTO<List<User>> getAllUsers() {
         return new ResponseDTO<>(HttpStatus.OK.value(), "Fetched all users from database.", userManagementService.getAllUsers());
@@ -57,6 +60,7 @@ public class UserManagementController {
      * @param email The email of the user.
      * @return A ResponseDTO containing the retrieved user or an error message if the user is not found.
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
     @GetMapping("/email/{email}")
     public ResponseDTO<User> getUserByEmail(@PathVariable String email) {
         User user = userManagementService.getUserByEmail(email);
@@ -72,6 +76,7 @@ public class UserManagementController {
      * @param name The name of the users.
      * @return A ResponseDTO containing a list of retrieved users.
      */
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
     @GetMapping("/name/{name}")
     public ResponseDTO<List<User>> getUsersByName(@PathVariable String name) {
         return new ResponseDTO<>(HttpStatus.OK.value(),
@@ -79,37 +84,21 @@ public class UserManagementController {
     }
 
     /**
-     * Creates a new user.
-     *
-     * @param user The user to be created.
-     * @return A ResponseDTO containing the created user or an error message if the user already exists.
-     */
-    @PostMapping("/create")
-    public ResponseDTO<User> create(@RequestBody User user) {
-        User createdUser = userManagementService.saveUser(user);
-        if (createdUser == null) {
-            return new ResponseDTO<>(HttpStatus.BAD_REQUEST.value(),
-                    "User with an email " + user.getEmail() + " already exist.", user);
-        }
-        return new ResponseDTO<>(HttpStatus.OK.value(),
-                "Successfully created a user with an email " + user.getEmail() + ".", user);
-    }
-
-    /**
      * Deletes a user by their ID.
      *
-     * @param id The ID of the user to be deleted.
+     * @param email The email of the user to be deleted.
      * @return A ResponseDTO containing the deleted user or an error message if the user is not found.
      */
-    @DeleteMapping("/{id}")
-    public ResponseDTO<User> delete(@PathVariable Long id) {
-        User deletedUser = userManagementService.deleteUser(id);
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
+    @DeleteMapping("/{email}")
+    public ResponseDTO<User> delete(@PathVariable String email) {
+        User deletedUser = userManagementService.deleteUser(email);
         if (deletedUser == null) {
             return new ResponseDTO<>(HttpStatus.NOT_FOUND.value(),
-                    "User with an id " + id + " not found.", null);
+                    "User with an email " + email + " not found.", null);
         }
         return new ResponseDTO<>(HttpStatus.BAD_REQUEST.value(),
-                "User with an id " + id + " successfully removed.", deletedUser);
+                "User with an email " + email + " successfully removed.", deletedUser);
     }
 
     /**
@@ -118,6 +107,7 @@ public class UserManagementController {
      * @param changeUserRoleDTO DTO containing the user ID and the new role.
      * @return A ResponseDTO containing the updated user or an error message if the user is not found or the request is invalid.
      */
+    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     @PostMapping("/change/role")
     public ResponseDTO<User> changeUserRole(@RequestBody ChangeUserRoleDTO changeUserRoleDTO) {
         if (changeUserRoleDTO == null) {
@@ -128,11 +118,11 @@ public class UserManagementController {
             User user = userManagementService.changeUserRole(changeUserRoleDTO);
             if (user == null) {
                 responseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-                responseDTO.setMessage(String.format(USER_NOT_FOUND_ERROR, changeUserRoleDTO.userId()));
+                responseDTO.setMessage(String.format(USER_NOT_FOUND, changeUserRoleDTO.userEmail()));
                 responseDTO.setData(null);
             } else {
                 responseDTO.setStatus(HttpStatus.OK.value());
-                responseDTO.setMessage(String.format(USER_ROLE_UPDATED, changeUserRoleDTO.userId(), changeUserRoleDTO.userRole()));
+                responseDTO.setMessage(String.format(USER_ROLE_UPDATED, changeUserRoleDTO.userEmail(), changeUserRoleDTO.userRole()));
                 responseDTO.setData(user);
             }
         } catch (RuntimeException e) {

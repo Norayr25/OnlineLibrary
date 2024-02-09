@@ -1,11 +1,13 @@
 package com.Library.services;
 
+import com.Library.exceptions.UserNotFoundException;
 import com.Library.repositores.UserRepository;
 import com.Library.services.common.UserRole;
 import com.Library.services.dtos.ChangeUserRoleDTO;
 import com.Library.services.entities.User;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +20,9 @@ import java.util.logging.Logger;
  */
 @Service
 public class UserManagementService {
-    public static final String USER_NOT_FOUND_ERROR = "User with specified id %s doesn't exist.";
-    public static final String USER_ROLE_UPDATED = "User with specified id %s was updated with new role %s.";
-    private final Logger log = Logger.getLogger(UserManagementService.class.getCanonicalName());
+    private static final Logger log = Logger.getLogger(UserManagementService.class.getCanonicalName());
+    public static final String USER_NOT_FOUND = "User with specified email %s doesn't exist.";
+    public static final String USER_ROLE_UPDATED = "User with specified email %s was updated with new role %s.";
     private final UserRepository usersRepository;
 
     @Autowired
@@ -76,6 +78,7 @@ public class UserManagementService {
      * @return The saved user object.
      */
     @Nullable
+    @Transactional
     public User saveUser(@Nonnull final User user) {
         validateUser(user);
 
@@ -88,17 +91,17 @@ public class UserManagementService {
 
     /**
      * Deletes a user from the database by their ID.
-     * @param id The ID of the user to delete.
+     * @param email The email of the user to delete.
      * @return The deleted user object.
      */
     @Nullable
-    public User deleteUser(@Nonnull final Long id) {
-        Optional<User> userOpt = usersRepository.findById(id);
-        if (userOpt.isEmpty()) {
+    public User deleteUser(@Nonnull final String email) {
+        User user = usersRepository.getByEmail(email);
+        if (user == null) {
             return null;
         }
-        usersRepository.deleteById(id);
-        return userOpt.get();
+        usersRepository.delete(user);
+        return user;
     }
 
     /**
@@ -109,18 +112,16 @@ public class UserManagementService {
     @Nullable
     public User changeUserRole(@Nonnull final ChangeUserRoleDTO changeUserRoleDTO) {
         final String userRole = changeUserRoleDTO.userRole();
-        final Long userId = changeUserRoleDTO.userId();
+        final String userEmail = changeUserRoleDTO.userEmail();
 
         validateUserRoel(userRole);
-        Optional<User> optionalUser = usersRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            user.setUserRole(UserRole.valueOf(userRole.toUpperCase()));
-            usersRepository.save(user);
-            log.info(String.format(USER_ROLE_UPDATED, userId, userRole));
+        User user = usersRepository.getByEmail(userEmail);
+        if (user != null) {
+            usersRepository.updateUserRole(userEmail, UserRole.valueOf(userRole));
+            log.info(String.format(USER_ROLE_UPDATED, userEmail, userRole));
             return user;
         } else {
-            log.severe(String.format(USER_NOT_FOUND_ERROR, userId));
+            log.severe(String.format(USER_NOT_FOUND, userEmail));
             return null;
         }
     }
@@ -134,11 +135,15 @@ public class UserManagementService {
     public void setUserMoney(@Nonnull final Long userId, int money) {
         Optional<User> userOpt = usersRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException(String.format(USER_NOT_FOUND_ERROR, userId));
+            throw new UserNotFoundException("User with specified id " + userId + " doesn't exist.");
         }
         User user = userOpt.get();
         user.setMoney(money);
         usersRepository.save(user);
+    }
+
+    public void setUserRole(@Nonnull final String email, @Nullable final UserRole userRole) {
+        usersRepository.updateUserRole(email, userRole);
     }
 
     private void validateUser(@Nonnull final User user) {

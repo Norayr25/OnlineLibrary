@@ -14,12 +14,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link OrderService} interface responsible for handling order processing logic.
  */
 @Service
 public class OrderServiceImpl implements OrderService {
+    private static final Logger log = Logger.getLogger(OrderServiceImpl.class.getCanonicalName());
+    private static final String LIBRARY_ERROR = "The library doesn't have that many books %s.";
     private final InventoryService inventoryService;
     private final PaymentService paymentService;
     private final OrderRepository orderRepository;
@@ -37,25 +41,27 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param user The user placing the order.
      * @param cart The cart containing the items to be purchased.
+     * @return The total price of items in the cart.
      * @throws OutOfStockException    If any of the items in the cart are out of stock.
      * @throws PaymentFailedException If the payment process fails.
      */
     @Transactional
     @Override
-    public void processOrder(@Nonnull final User user,
-                                            @Nonnull final Cart cart) {
+    public int processOrder(@Nonnull final User user,
+                            @Nonnull final Cart cart) {
 
         Map<Item, Integer> items = cart.getItems();
         for (Map.Entry<Item, Integer> entry : items.entrySet()) {
             if (!inventoryService.isAvailable(entry)) {
-                throw new OutOfStockException("The library doesn't have that many books " + entry.getKey());
+                log.severe(String.format(LIBRARY_ERROR, entry.getKey()));
+                throw new OutOfStockException(String.format(LIBRARY_ERROR, entry.getKey()));
             }
         }
         int totalPrice = calculateTotal(items);
         PaymentStatus paymentStatus = paymentService.processPayment(user, totalPrice);
 
         if (paymentStatus == PaymentStatus.SUCCESS) {
-            Order order = new Order(user.getId(), cart, totalPrice);
+            Order order = new Order(user.getEmail(), cart, totalPrice);
             orderRepository.save(order);
 
             for (Map.Entry<Item, Integer> entry : items.entrySet()) {
@@ -64,20 +70,22 @@ public class OrderServiceImpl implements OrderService {
             user.setCart(null);
             userManagementService.saveUser(user);
         } else {
+            log.severe("Payment failed, insufficient funds.");
             throw new PaymentFailedException("Payment failed, insufficient funds.");
         }
+        return totalPrice;
     }
 
     /**
      * Retrieves all orders placed by a specific user.
      *
-     * @param userId The ID of the user whose orders are to be retrieved.
+     * @param email The email of the user whose orders are to be retrieved.
      * @return A list of orders placed by the specified user.
      */
     @Override
     @Nonnull
-    public List<Order> getSpecificUserOrders(@Nonnull final Long userId) {
-        return orderRepository.findByUserId(userId);
+    public List<Order> getSpecificUserOrders(@Nonnull final String email) {
+        return orderRepository.findByUserEmail(email);
     }
 
     /**
@@ -91,6 +99,20 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAll();
     }
 
+    @Override
+    public List<Order> getTopUsersMadeOrder(Integer count) {
+        List<Order> orderList = orderRepository.findAll();
+        return orderList
+                .stream()
+                .collect(Collectors.groupingBy(Order::getUserEmail, Collectors.averagingDouble(Order::getTotalPrice)))
+                .entrySet()
+                .stream()
+                .sorted((val1, val2) -> Double.compare(val2.getValue(), val1.getValue()))
+                .limit(count)
+                .map(entry -> new Order(entry.getKey(), null, entry.getValue()))
+                .toList();
+    }
+
     /**
      * Calculates the total price of items in the cart.
      *
@@ -98,11 +120,10 @@ public class OrderServiceImpl implements OrderService {
      * @return The total price of items in the cart.
      */
     private int calculateTotal(@Nonnull final Map<Item, Integer> items) {
-        int totalSum = 0;
         // Calculate total price of items in cart.
-        for (Map.Entry<Item, Integer> item : items.entrySet()) {
-            totalSum += item.getKey().getPrice() * item.getValue();
-        }
-        return totalSum;
+        return items.entrySet()
+                .stream()
+                .mapToInt(entry -> entry.getKey().getPrice() * entry.getValue())
+                .sum();
     }
 }

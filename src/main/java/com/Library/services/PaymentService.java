@@ -25,7 +25,7 @@ public class PaymentService {
      */
     @Nonnull
     public PaymentStatus processPayment(@Nonnull final User user, int totalAmount) {
-        if (user.getMoney() >= totalAmount) {
+        if (user.getMoney() != null && user.getMoney() >= totalAmount) {
             userManagementService.setUserMoney(user.getId(), user.getMoney() - totalAmount);
             return PaymentStatus.SUCCESS;
         }
